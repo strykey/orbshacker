@@ -22,7 +22,7 @@ A professional tool that automatically creates fake game processes for Discord O
 ## Requirements
 
 - Python 3.7 or higher
-- Windows (only support)
+- **Windows ONLY** - This tool is designed exclusively for Windows. Linux/macOS are not supported.
 - Internet connection (for database fetching)
 - **Discord MUST be running**. The game spoofer only works when Discord is active and scanning processes
 
@@ -76,11 +76,13 @@ This tool works as a **game process spoofer**. It tricks Discord into thinking y
 - No actual game files are needed, just the process name match
 
 **Multi-Game Emulation:**
-- You can run the tool multiple times to emulate multiple games simultaneously
+- You can emulate multiple games simultaneously from a single window
+- After launching a game, press Enter to return to the main menu
+- Select another game and repeat as many times as needed
 - Each fake process runs independently, so Discord detects all of them
 - This allows you to complete **all orb quests at once in just 15 minutes**
-- Simply launch the tool multiple times and select different games each time
 - All fake processes will run in parallel and Discord will detect them all
+- No need to open multiple windows, just use the menu repeatedly
 
 ### Database Sources
 
@@ -119,13 +121,15 @@ orbshacker/
 
 ## WARNING: Legal Notice & Disclaimer
 
-**EDUCATIONAL PURPOSES ONLY**
+**EDUCATIONAL PURPOSES ONLY - NO COMMERCIAL USE**
 
 This tool is provided **STRICTLY for educational and research purposes**. It is intended to help users understand how Discord's game detection system works and to study process manipulation techniques.
 
+**COMMERCIAL USE IS STRICTLY PROHIBITED. This software may not be used, distributed, or sold for commercial purposes under any circumstances.**
 
 ### Important Warnings
 
+- **NO COMMERCIAL USE**: This software is for educational purposes only. Commercial use, distribution, or sale is strictly prohibited.
 - **The developers do NOT condone or encourage any misuse of this software**
 - **Users are SOLELY responsible for their actions** and must comply with:
   - All applicable local, state, and federal laws
@@ -148,15 +152,15 @@ This tool is provided **STRICTLY for educational and research purposes**. It is 
 
 **Complete all orb quests in 15 minutes:**
 1. Launch the tool and select your first game
-2. Keep that window open (the process must stay running)
-3. Launch the tool again in a new window and select another game
-4. Repeat for as many games as needed
-5. All fake processes will run simultaneously
+2. After the process is launched, press Enter to return to the main menu
+3. Select another game from the menu
+4. Repeat steps 2-3 for as many games as you want (no need to open multiple windows!)
+5. All fake processes will run simultaneously in the background
 6. Discord will detect all of them and complete all quests at once
 7. Wait 15 minutes for all quests to complete
 8. Close all fake processes when done
 
-This works because each fake process has a unique name, so Discord treats them as separate games running simultaneously.
+This works because each fake process has a unique name, so Discord treats them as separate games running simultaneously. You can emulate as many games as you want from a single window by simply pressing Enter after each launch to return to the menu.
 
 ## Contributing
 
@@ -170,12 +174,11 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 - **Attribution Required**: You must credit the original author
 - **Share Alike**: Any modified versions must also be GPL v3
 - **Source Code**: You must provide source code when distributing
-- **Commercial Use**: Allowed, but derived works must also be GPL v3 (no closed-source commercial derivatives)
+- **NO COMMERCIAL USE**: This software is provided for educational purposes only. Commercial use, distribution, or sale of this software or any derivative works is strictly prohibited.
 
 ## Author
 
 **Strykey**
 
 *"Because sometimes you just need those orbs without the commitment of a 100GB download."*
-
 
