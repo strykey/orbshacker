@@ -22,7 +22,7 @@ A professional tool that automatically creates fake game processes for Discord O
 ## Requirements
 
 - Python 3.7 or higher
-- Windows (primary support), Linux/macOS (partial support)
+- Windows (only support)
 - Internet connection (for database fetching)
 - **Discord MUST be running**. The game spoofer only works when Discord is active and scanning processes
 
@@ -177,4 +177,5 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 **Strykey**
 
 *"Because sometimes you just need those orbs without the commitment of a 100GB download."*
+
 
