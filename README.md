@@ -8,7 +8,8 @@
 
 A professional tool that automatically creates fake game processes for Discord Orb quests without requiring actual game installations. Because who has time to install 500GB games just for some orbs?
 
-## Features<img width="485" height="426" alt="Capture d&#39;écran 2026-01-16 204625" src="https://github.com/user-attachments/assets/07cbdd26-b248-4bd0-8092-61a54c80d2ed" />
+<img width="485" height="426" alt="Capture d&#39;écran 2026-01-16 204625" src="https://github.com/user-attachments/assets/07cbdd26-b248-4bd0-8092-61a54c80d2ed" />
+## Features
 
 
 - **Automatic Game Detection**: Connects to Discord's official API to fetch the latest list of detectable games
@@ -182,5 +183,6 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 **Strykey**
 
 *"Because sometimes you just need those orbs without the commitment of a 100GB download."*
+
 
 
