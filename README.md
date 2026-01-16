@@ -61,6 +61,33 @@ python orbshacker.py
 
 This tool works as a **game process spoofer**. It tricks Discord into thinking you're running a game by creating fake processes with the exact names Discord expects.
 
+## Why This Method Is Undetectable
+
+This tool is completely safe and undetectable because it works entirely on your local machine without ever touching Discord's client.
+
+**The key difference from other methods:**
+Most orb quest cheats work by injecting code into Discord's console or modifying the client files. Those methods are dangerous because Discord can detect when you've tampered with their client. They can see modified code, fake API requests, and client integrity violations. Getting banned is just a matter of time.
+
+Our method is fundamentally different. We don't modify Discord at all. We simply create processes on your computer with the correct names. When Discord scans your running processes (which is a normal Windows function), it sees our fake process and thinks it's a real game. That's it.
+
+**Why Discord cannot detect this:**
+Discord's game detection works by reading your process list. It sees "TslGame.exe" running and assumes you're playing PUBG. There is no technical way for Discord to verify whether that process is the actual game or just a renamed executable. The process name is all Discord checks.
+
+To detect our method, Discord would need to implement kernel-level anti-cheat software like Valorant's Vanguard. This would require deep system access, raise massive privacy concerns, and break their promise of being a lightweight chat app. They will never do this just for cosmetic orb quests.
+
+## Why Console Scripts Get You Banned
+
+**Console script injection is detectable and dangerous:**
+When you paste code into Discord's developer console, you're directly modifying how Discord's client works. This leaves traces everywhere. Discord can check if their JavaScript has been tampered with, they can see unusual API requests, and they can detect when their client isn't behaving normally. This is explicitly against their Terms of Service and is easy to catch.
+
+**Our method versus console scripts:**
+Console scripts modify Discord's code and send fake requests to Discord's servers. This is client tampering and is explicitly forbidden. Discord has detection systems for this and regularly bans people who use these methods.
+
+Our tool creates processes on your own computer. Discord's client remains completely untouched and unmodified. We use Discord's own public API to fetch the game list, which is perfectly legal. No code injection, no client modification, no suspicious network traffic. Just a normal process running on your machine.
+
+**The technical reality:**
+From Discord's perspective, our fake process looks identical to a legitimate game. Both are just process names in your Windows task list. Discord would need to verify the actual game files, check digital signatures, or implement invasive anti-cheat measures to tell the difference. They don't do any of this because it would be massive overkill for a cosmetic reward system.
+
 **IMPORTANT: Discord MUST be running for this to work!**
 
 1. The tool connects to Discord's official API (`/api/v9/applications/detectable`) to get the latest game list
@@ -183,6 +210,7 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 **Strykey**
 
 *"Because sometimes you just need those orbs without the commitment of a 100GB download."*
+
 
 
 
