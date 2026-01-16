@@ -8,9 +8,9 @@
 
 A professional tool that automatically creates fake game processes for Discord Orb quests without requiring actual game installations. Because who has time to install 500GB games just for some orbs?
 
-<img width="485" height="426" alt="Capture d&#39;écran 2026-01-16 204625" src="https://github.com/user-attachments/assets/07cbdd26-b248-4bd0-8092-61a54c80d2ed" />
-## Features
+<img width="485" height="426" alt="Capture d'écran 2026-01-16 204625" src="https://github.com/user-attachments/assets/07cbdd26-b248-4bd0-8092-61a54c80d2ed" />
 
+## Features
 
 - **Automatic Game Detection**: Connects to Discord's official API to fetch the latest list of detectable games
 - **Smart Search**: Search games by name or abbreviation (PUBG, LoL, CSGO, etc.)
