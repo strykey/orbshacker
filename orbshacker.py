@@ -181,7 +181,7 @@ class DiscordGamesDB:
         return unique_matches[:20]
     
     def get_win32_executable(self, game):
-        """Extract primary Windows executable from game data"""
+        """Extract primary Windows executable from game data (with full path)"""
         executables = game.get('executables', [])
         candidates = []
         
@@ -194,10 +194,8 @@ class DiscordGamesDB:
             if name.startswith('>'):
                 name = name[1:]
             
-            if '/' in name:
-                name = name.split('/')[-1]
-            if '\\' in name:
-                name = name.split('\\')[-1]
+            # Keep the full path, just clean up the separators
+            name = name.replace('\\', '/')
             name_lower = name.lower()
             skip_patterns = ['_be.exe', '_eac.exe', 'launcher', 'unins', 'crash', 'report', 'update', 'setup', 'install']
             
@@ -209,7 +207,7 @@ class DiscordGamesDB:
         return candidates[0] if candidates else None
     
     def get_all_executables(self, game):
-        """Get all Windows executables for a game"""
+        """Get all Windows executables for a game (with full paths)"""
         executables = game.get('executables', [])
         all_exes = []
         
@@ -222,10 +220,8 @@ class DiscordGamesDB:
             if name.startswith('>'):
                 name = name[1:]
             
-            if '/' in name:
-                name = name.split('/')[-1]
-            if '\\' in name:
-                name = name.split('\\')[-1]
+            # Keep the full path, just clean up the separators
+            name = name.replace('\\', '/')
             
             if name and name not in all_exes:
                 all_exes.append(name)
@@ -245,17 +241,25 @@ class GameFaker:
             sys.exit(1)
     
     def create_fake_game(self, exe_name):
-        """Create fake game executable"""
+        """Create fake game executable with full directory structure"""
         if not exe_name.lower().endswith('.exe'):
             exe_name += '.exe'
         
-        target_dir = self.desktop_path / "Win64"
-        target_path = target_dir / exe_name
+        # Parse the full path and create all directories
+        # Convert backslashes to forward slashes for consistency
+        exe_name = exe_name.replace('\\', '/')
         
+        # Create the full path: Desktop/Win64/{full_game_path}
+        target_path = self.desktop_path / "Win64" / exe_name
+        target_dir = target_path.parent
+        
+        # Create all parent directories
         target_dir.mkdir(parents=True, exist_ok=True)
         
         try:
-            loading_animation(f"Creating {exe_name}", 0.8)
+            # Extract just the filename for display
+            filename = exe_name.split('/')[-1]
+            loading_animation(f"Creating {filename}", 0.8)
             shutil.copy2(self.exe_source, target_path)
             print_color(f"[OK] Created: {target_path}", Colors.GREEN, bold=True)
             return target_path
