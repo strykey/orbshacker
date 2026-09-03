@@ -64,6 +64,8 @@ def main():
         "--icon",
         "orbshacker.ico",
         "--add-data",
+        "orbshacker.ico;.",
+        "--add-data",
         "settings.py;.",
         "--collect-all",
         "orbshacker",

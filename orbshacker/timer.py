@@ -8,6 +8,7 @@ and thinks the game is running.
 
 import sys
 import tkinter as tk
+from pathlib import Path
 
 from orbshacker import config
 
@@ -177,7 +178,6 @@ class TimerApp:
 
         import subprocess
         import sys
-        from pathlib import Path
 
         # Resolve paths
         if getattr(sys, "frozen", False):
@@ -236,6 +236,13 @@ class TimerApp:
 def run_timer(minutes: int = 15) -> None:
     """Entry point for the fake game process."""
     root = tk.Tk()
+    root.iconbitmap(resource_path("orbshacker.ico"))
     title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
     TimerApp(root, minutes, title)
     root.mainloop()
+
+
+def resource_path(name: str) -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / name
+    return Path(__file__).parent / name
