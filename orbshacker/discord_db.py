@@ -221,7 +221,7 @@ def database_mode(db: DiscordGamesDB, faker: GameFaker) -> None:
     result = faker.create_fake_game(exe_name)
     if result:
         print()
-        faker.launch_executable(result)
+        faker.launch_executable(result, selected.get('name'))
         print_color("\n[OK] Setup complete! Discord should detect the game.", Colors.GREEN, bold=True)
         print_color("[!] IMPORTANT: Discord MUST be running for the spoofing to work", Colors.YELLOW)
         print_color("[*] Keep the process running until quest is complete", Colors.CYAN)

@@ -21,9 +21,9 @@ TIMER_MINUTES    = 15
 
 
 class TimerApp:
-    def __init__(self, root: tk.Tk, minutes: int = 15):
+    def __init__(self, root: tk.Tk, minutes: int = 15, title: str = "Timer"):
+        root.title(title)
         self.root: tk.Tk = root
-        self.root.title(WINDOW_TITLE)
         self.root.geometry(WINDOW_SIZE)
         self.root.resizable(False, False)
         self.root.configure(bg=BG_COLOR)
@@ -146,5 +146,6 @@ class TimerApp:
 def run_timer(minutes: int = 15) -> None:
     """Entry point for the fake game process."""
     root = tk.Tk()
-    TimerApp(root, minutes)
+    title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
+    TimerApp(root, minutes, title)
     root.mainloop()

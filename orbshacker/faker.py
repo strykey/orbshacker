@@ -34,8 +34,8 @@ TIMER_MINUTES = 15
 STEAM_MANIFEST_PATH = None
 
 class TimerApp:
-    def __init__(self, root, minutes=15):
-        root.title("Timer")
+    def __init__(self, root, minutes=15, title = "Timer"):
+        root.title(title)
         root.geometry("400x250")
         root.resizable(False, False)
         root.configure(bg="#1a1a1a")
@@ -111,7 +111,8 @@ class TimerApp:
         sys.exit(0)
 
 root = tk.Tk()
-TimerApp(root, TIMER_MINUTES)
+title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
+TimerApp(root, TIMER_MINUTES, title)
 root.mainloop()
 '''
 
@@ -227,17 +228,17 @@ class GameFaker:
             print_color("[!] Check file permissions or disk space", Colors.YELLOW)
             return None
 
-    def launch_executable(self, exe_path: Path) -> bool:
+    def launch_executable(self, exe_path: Path, title: str = "Timer") -> bool:
         """Launch the fake game process in background."""
         try:
             loading_animation("Launching process", 0.8)
 
             if self._frozen:
-                args = [str(exe_path)]
+                args = [str(exe_path), title]
                 env = None
             else:
                 timer_script = exe_path.parent / "_orbshacker_timer.pyw"
-                args = [str(exe_path), str(timer_script)]
+                args = [str(exe_path), str(timer_script), title]
                 env = os.environ.copy()
                 base_prefix = Path(sys.base_prefix)
                 env["PYTHONHOME"] = str(base_prefix)
