@@ -30,7 +30,7 @@ class TimerApp:
 
         self.remaining = minutes * 60
 
-        self.auto_close = tk.BooleanVar(value=getattr(config, "AUTO_CLOSE", True))
+        self.auto_close = tk.BooleanVar(value=config.AUTO_CLOSE)
         self.auto_close_toggle = tk.Checkbutton(
             root,
             text="Close when timer ends",
@@ -129,6 +129,7 @@ class TimerApp:
         self.timer_label.config(text=f"{m:02d}:{s:02d}")
         if self.remaining > 0:
             self.remaining -= 1
+            self.update_time_adjust_buttons()
             self.root.after(1000, self._tick)
         else:
             self.timer_label.config(text="00:00", fg=DONE_COLOR)

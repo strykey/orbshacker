@@ -291,6 +291,7 @@ class GameFaker:
         target_config = {
             "CHOSEN_FOLDER": str(config.CHOSEN_FOLDER).replace("\\", "/"),
             "AUTO_DELETE": config.AUTO_DELETE,
+            "AUTO_CLOSE": config.AUTO_CLOSE,
             "TIMER_MINUTES": config.TIMER_MINUTES,
         }
         manifest_path = getattr(config, "STEAM_MANIFEST_PATH", None)
@@ -311,6 +312,7 @@ class GameFaker:
             if not timer_script.exists():
                 code = _TIMER_PYW_CODE
                 code = code.replace("AUTO_DELETE = False", f"AUTO_DELETE = {config.AUTO_DELETE}")
+                code = code.replace("AUTO_CLOSE = True", f"AUTO_CLOSE = {config.AUTO_CLOSE}")
                 code = code.replace("TIMER_MINUTES = 15", f"TIMER_MINUTES = {config.TIMER_MINUTES}")
                 if manifest_path:
                     code = code.replace("STEAM_MANIFEST_PATH = None", f"STEAM_MANIFEST_PATH = {repr(str(manifest_path))}")
