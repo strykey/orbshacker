@@ -34,7 +34,7 @@ TIMER_MINUTES = 15
 STEAM_MANIFEST_PATH = None
 
 class TimerApp:
-    def __init__(self, root, minutes=15, title = "Timer"):
+    def __init__(self, root, minutes=15, title="Timer"):
         root.title(title)
         root.geometry("400x250")
         root.resizable(False, False)
@@ -47,38 +47,143 @@ class TimerApp:
             root,
             text="Close when timer ends",
             variable=self.auto_close,
+            command=self.toggle_auto_close,
             font=("Segoe UI", 10),
             fg="#e0e0e0",
             bg="#1a1a1a",
             activeforeground="#e0e0e0",
             activebackground="#1a1a1a",
+            cursor="hand2",
             selectcolor="#1a1a1a",
+            bd=1,
         )
         self.auto_close_toggle.pack(pady=(15, 0))
 
-        self.label = tk.Label(root, text=f"{minutes:02d}:00", font=("Consolas", 56, "bold"),
-                              fg="#e0e0e0", bg="#1a1a1a")
-        self.label.pack(expand=True)
-        self.status = tk.Label(root, text="Running", font=("Segoe UI", 10),
-                               fg="#666666", bg="#1a1a1a")
-        self.status.pack(side="bottom", pady=20)
+        self.timer_label = tk.Label(
+            root,
+            text=f"{minutes:02d}:00",
+            font=("Consolas", 56, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+        )
+        self.timer_label.pack(expand=True)
+
+        self.time_adjust_label = tk.Label(
+            root,
+            text="Add or reduce time",
+            font=("Segoe UI", 9),
+            fg="#666666",
+            bg="#1a1a1a",
+        )
+        self.time_adjust_label.pack()
+
+        self.time_adjust_frame = tk.Frame(
+            root,
+            bg="#1a1a1a",
+        )
+        self.time_adjust_frame.pack(pady=(2, 10))
+
+        self.minus_button = tk.Button(
+            self.time_adjust_frame,
+            text="-",
+            command=lambda: self.adjust_time(-30),
+            font=("Segoe UI", 18, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.minus_button.pack(side="left")
+
+        self.time_adjust_label_value = tk.Label(
+            self.time_adjust_frame,
+            text="30s",
+            font=("Segoe UI", 10),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            padx=8,
+        )
+        self.time_adjust_label_value.pack(side="left")
+
+        self.plus_button = tk.Button(
+            self.time_adjust_frame,
+            text="+",
+            command=lambda: self.adjust_time(30),
+            font=("Segoe UI", 14, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.plus_button.pack(side="left")
+
+        self.status_label = tk.Label(
+            root,
+            text="Running",
+            font=("Segoe UI", 10),
+            fg="#666666",
+            bg="#1a1a1a",
+        )
+        self.status_label.pack(side="bottom", pady=(0, 15))
+
+        self.update_time_adjust_buttons()
         self._tick()
 
     def _tick(self):
         m, s = divmod(self.remaining, 60)
-        self.label.config(text=f"{m:02d}:{s:02d}")
+        self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
         if self.remaining > 0:
             self.remaining -= 1
-            self.label.after(1000, self._tick)
+            self.update_time_adjust_buttons()
+            self.root.after(1000, self._tick)
         else:
-            self.label.config(text="00:00", fg="#ff6b6b")
-            self.status.config(text="Complete", fg="#ff6b6b")
+            self.timer_label.config(text="00:00", fg="#ff6b6b")
+            self.status_label.config(text="Complete", fg="#ff6b6b")
+            self.update_time_adjust_buttons()
             self.root.update()
+
             if AUTO_DELETE:
                 self.trigger_self_destruction()
             elif self.auto_close.get():
                 self.root.destroy()
                 sys.exit(0)
+
+    def toggle_auto_close(self) -> None:
+        if self.auto_close.get() and self.remaining <= 0:
+            self.root.destroy()
+            sys.exit(0)
+        
+    def adjust_time(self, seconds):
+        self.remaining = max(0, self.remaining + seconds)
+
+        m, s = divmod(self.remaining, 60)
+        self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
+        self.update_time_adjust_buttons()
+
+    def update_time_adjust_buttons(self) -> None:
+        minus_state = "disabled" if self.remaining <= 30 else "normal"
+        plus_state = "disabled" if self.remaining <= 0 else "normal"
+
+        self.minus_button.config(state=minus_state)
+        self.plus_button.config(state=plus_state)
 
     def trigger_self_destruction(self):
         exe_path = Path(sys.executable)
