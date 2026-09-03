@@ -8,6 +8,7 @@ and thinks the game is running.
 
 import sys
 import tkinter as tk
+
 from orbshacker import config
 
 WINDOW_TITLE     = "Timer"
@@ -18,7 +19,6 @@ ACCENT_COLOR     = "#4a9eff"
 SECONDARY_COLOR  = "#666666"
 DONE_COLOR       = "#ff6b6b"
 TIMER_MINUTES    = 15
-
 
 class TimerApp:
     def __init__(self, root: tk.Tk, minutes: int = 15, title: str = "Timer"):
@@ -48,11 +48,14 @@ class TimerApp:
         self.auto_close_toggle.pack(pady=(15, 0))
 
         self.timer_label: tk.Label = tk.Label(
-            root, text=f"{minutes:02d}:00",
-            font=("Consolas", 56, "bold"), fg=TEXT_COLOR, bg=BG_COLOR,
+            root,
+            text=f"{minutes:02d}:00",
+            font=("Consolas", 56, "bold"),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
         )
         self.timer_label.pack(expand=True)
-        
+
         self.time_adjust_label = tk.Label(
             root,
             text="Add or reduce time",
@@ -116,8 +119,11 @@ class TimerApp:
         self.plus_button.pack(side="left")
 
         self.status_label: tk.Label = tk.Label(
-            root, text="Running",
-            font=("Segoe UI", 10), fg=SECONDARY_COLOR, bg=BG_COLOR,
+            root,
+            text="Running",
+            font=("Segoe UI", 10),
+            fg=SECONDARY_COLOR,
+            bg=BG_COLOR,
         )
         self.status_label.pack(side="bottom", pady=(0, 15))
 
@@ -135,7 +141,7 @@ class TimerApp:
             self.timer_label.config(text="00:00", fg=DONE_COLOR)
             self.status_label.config(text="Complete", fg=DONE_COLOR)
             self.root.update()
-            
+
             if config.AUTO_DELETE:
                 self.trigger_self_destruction()
 
@@ -143,13 +149,14 @@ class TimerApp:
             elif self.auto_close.get():
                 self.root.destroy()
                 import sys
+
                 sys.exit(0)
 
     def toggle_auto_close(self) -> None:
         if self.auto_close.get() and self.remaining <= 0:
             self.root.destroy()
             sys.exit(0)
-        
+
     def adjust_time(self, seconds: int) -> None:
         self.remaining = max(0, self.remaining + seconds)
 
@@ -168,8 +175,8 @@ class TimerApp:
     def trigger_self_destruction(self) -> None:
         """Spawn a detached command to delete faked files and directories, and exit."""
 
-        import sys
         import subprocess
+        import sys
         from pathlib import Path
 
         # Resolve paths
@@ -203,10 +210,7 @@ class TimerApp:
             files_to_delete.append(manifest_str)
 
         files_q = " ".join(f'"{f}"' for f in files_to_delete)
-        cmd_parts = [
-            "ping 127.0.0.1 -n 3 > nul",
-            f'del /f /q {files_q}'
-        ]
+        cmd_parts = ["ping 127.0.0.1 -n 3 > nul", f"del /f /q {files_q}"]
 
         # Delete empty parent directory
         cmd_parts.append(f'rmdir "{dir_str}"')

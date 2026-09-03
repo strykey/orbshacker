@@ -8,11 +8,12 @@ This script:
 3. Invokes PyInstaller with the proper parameters to build a single executable.
 """
 
-import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 from orbshacker import _version as _build_version
+
 
 def get_git_version() -> str:
     """Retrieve the latest tag from Git, falling back to '0.0.0'."""
@@ -26,9 +27,11 @@ def get_git_version() -> str:
         tag = res.stdout.strip()
         if tag:
             return tag.lstrip("v")
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
-    return getattr(_build_version, "VERSION", "0.0.0") # Fallback to the version in _version.py if git fails
+    return getattr(
+        _build_version, "VERSION", "0.0.0"
+    )  # Fallback to the version in _version.py if git fails
 
 
 def main():

@@ -9,16 +9,16 @@ and are NOT exposed in settings.py.
 
 import importlib.util
 import json
-import shutil
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
 from typing import TypeVar, cast
 
 from . import _version as _build_version
 from .path_utils import sanitize_relative_path
 
 T = TypeVar("T")
+
 
 def _get_default_json_content() -> str:
     desktop_path = Path.home() / "Desktop"
@@ -27,9 +27,10 @@ def _get_default_json_content() -> str:
         "CHOSEN_FOLDER": desktop_str,
         "AUTO_DELETE": False,
         "AUTO_CLOSE": True,
-        "TIMER_MINUTES": 15
+        "TIMER_MINUTES": 15,
     }
     return json.dumps(content, indent=2)
+
 
 def _is_faked_game() -> bool:
     """Check if the currently running executable/script is a faked game copy."""
@@ -39,6 +40,7 @@ def _is_faked_game() -> bool:
     else:
         name = Path(sys.argv[0]).name.lower()
         return name not in ("orbshacker.py", "__main__.py") and "pytest" not in name
+
 
 def _load_embedded_settings() -> dict | None:
     if not getattr(sys, "frozen", False):
@@ -54,16 +56,17 @@ def _load_embedded_settings() -> dict | None:
             read_size = min(file_size, 65536)
             f.seek(file_size - read_size)
             chunk = f.read(read_size)
-        
+
         marker = b"__ORBSHACKER_BAKED_CONFIG__"
         if marker in chunk:
             parts = chunk.split(marker)
             if len(parts) >= 3:
                 json_bytes = parts[-2]
                 return json.loads(json_bytes.decode("utf-8"))
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
     return None
+
 
 def _load_settings():
     # 1. Try loading embedded settings from the executable
@@ -75,13 +78,13 @@ def _load_settings():
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).parent
         json_path = exe_dir / "settings.json"
-        
+
         # If settings.json doesn't exist, create it from default template
         # ONLY if we are the main application (not a faked game)
         if not _is_faked_game() and not json_path.exists():
             try:
                 json_path.write_text(_get_default_json_content(), encoding="utf-8")
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
     else:
         # Development mode
@@ -93,7 +96,7 @@ def _load_settings():
         try:
             with open(json_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     # 4. Fallback to settings.py (backward compatibility)
@@ -103,20 +106,24 @@ def _load_settings():
         settings_path = exe_dir / "settings.py"
         if settings_path.exists():
             try:
-                spec = importlib.util.spec_from_file_location("settings", str(settings_path))
+                spec = importlib.util.spec_from_file_location(
+                    "settings", str(settings_path)
+                )
                 if spec and spec.loader:
                     module = importlib.util.module_from_spec(spec)
                     sys.modules["settings"] = module
                     spec.loader.exec_module(module)
                     return module
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     try:
         import settings as _user  # root-level settings.py
+
         return _user
     except ImportError:
         return None  # no user settings file – use all defaults
+
 
 _user = _load_settings()
 
@@ -148,7 +155,7 @@ def _git_version() -> str | None:
             tag = result.stdout.strip()
             if tag:
                 return tag.lstrip("v")
-        except Exception:
+        except Exception:  # noqa: BLE001, S112
             continue
     return None
 
@@ -164,7 +171,6 @@ def _resolve_version() -> str:
         return git_version
 
     return "0.0.0"
-
 
 # ── App identity ──────────────────────────────────────────────────────────────
 VERSION   = _resolve_version()

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 # ╔═══════════════════════════════════════════════════════════╗
 # ║             ORBSHACKER – USER SETTINGS                   ║
 # ║  Edit values here. The app reads from this file.         ║

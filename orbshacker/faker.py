@@ -6,22 +6,25 @@ In source mode:           copies pythonw.exe → GameName.exe + _orbshacker_time
 """
 
 import os
-import sys
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 from . import config
-from .path_utils import sanitize_relative_path, sanitize_filename
+from .path_utils import sanitize_relative_path
 from .ui import (
-    Colors, print_color, print_boxed_title,
-    loading_animation, ask_confirm,
+    Colors,
+    ask_confirm,
+    loading_animation,
+    print_boxed_title,
+    print_color,
 )
 
 # Timer code embedded for source mode – written as a standalone .pyw file
 # so that the renamed Python interpreter can run it without any package dependency.
-_TIMER_PYW_CODE = '''\
+_TIMER_PYW_CODE = """\
 import tkinter as tk
 import sys
 import subprocess
@@ -219,11 +222,11 @@ root = tk.Tk()
 title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
 TimerApp(root, TIMER_MINUTES, title)
 root.mainloop()
-'''
+"""
 
 
 def _is_frozen() -> bool:
-    return getattr(sys, 'frozen', False)
+    return getattr(sys, "frozen", False)
 
 
 def _find_source_exe() -> Path:
@@ -299,39 +302,51 @@ class GameFaker:
             target_config["STEAM_MANIFEST_PATH"] = str(manifest_path).replace("\\", "/")
 
         import json
+
         if self._frozen:
             try:
                 json_data = json.dumps(target_config).encode("utf-8")
                 marker = b"__ORBSHACKER_BAKED_CONFIG__"
                 with open(target_path, "ab") as f:
                     f.write(marker + json_data + marker)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         else:
             timer_script = target_path.parent / "_orbshacker_timer.pyw"
             if not timer_script.exists():
                 code = _TIMER_PYW_CODE
-                code = code.replace("AUTO_DELETE = False", f"AUTO_DELETE = {config.AUTO_DELETE}")
-                code = code.replace("AUTO_CLOSE = True", f"AUTO_CLOSE = {config.AUTO_CLOSE}")
-                code = code.replace("TIMER_MINUTES = 15", f"TIMER_MINUTES = {config.TIMER_MINUTES}")
+                code = code.replace(
+                    "AUTO_DELETE = False", f"AUTO_DELETE = {config.AUTO_DELETE}"
+                )
+                code = code.replace(
+                    "AUTO_CLOSE = True", f"AUTO_CLOSE = {config.AUTO_CLOSE}"
+                )
+                code = code.replace(
+                    "TIMER_MINUTES = 15", f"TIMER_MINUTES = {config.TIMER_MINUTES}"
+                )
                 if manifest_path:
-                    code = code.replace("STEAM_MANIFEST_PATH = None", f"STEAM_MANIFEST_PATH = {repr(str(manifest_path))}")
+                    code = code.replace(
+                        "STEAM_MANIFEST_PATH = None",
+                        f"STEAM_MANIFEST_PATH = {str(manifest_path)!r}",
+                    )
                 timer_script.write_text(code, encoding="utf-8")
                 self.register_created_file(timer_script)
 
     def create_fake_game(self, exe_name: str) -> Path | None:
         """Create fake game executable under Desktop/<FAKE_EXE_DIR>/."""
         exe_name = sanitize_relative_path(exe_name)
-        if not exe_name.lower().endswith('.exe'):
-            exe_name += '.exe'
+        if not exe_name.lower().endswith(".exe"):
+            exe_name += ".exe"
         target_path = self.chosen_path / config.FAKE_EXE_DIR / exe_name
         try:
             loading_animation(f"Creating {exe_name.split('/')[-1]}", 0.8)
             self.copy_exe_to(target_path)
             print_color(f"[OK] Created: {target_path}", Colors.GREEN, bold=True)
             return target_path
-        except Exception as e:
-            print_color(f"[ERROR] Failed to create executable: {e}", Colors.RED, bold=True)
+        except Exception as e:  # noqa: BLE001
+            print_color(
+                f"[ERROR] Failed to create executable: {e}", Colors.RED, bold=True
+            )
             print_color("[!] Check file permissions or disk space", Colors.YELLOW)
             return None
 
@@ -353,7 +368,7 @@ class GameFaker:
                 path_parts = [str(base_prefix), env.get("PATH", "")]
                 env["PATH"] = os.pathsep.join(part for part in path_parts if part)
 
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 DETACHED_PROCESS = 0x00000008
                 proc = subprocess.Popen(
                     args,
@@ -375,12 +390,23 @@ class GameFaker:
             self._processes.append(proc)
 
             print_color("[OK] Process launched in background", Colors.GREEN, bold=True)
-            print_color("[*] Discord should now detect the game (if Discord is running)", Colors.CYAN)
-            print_color("[!] IMPORTANT: Discord MUST be running for the spoofing to work", Colors.YELLOW)
-            print_color("[*] Wait a few seconds for Discord to scan processes", Colors.GRAY)
-            print_color("[*] TIP: You can run this tool multiple times to emulate multiple games!", Colors.MAGENTA)
+            print_color(
+                "[*] Discord should now detect the game (if Discord is running)",
+                Colors.CYAN,
+            )
+            print_color(
+                "[!] IMPORTANT: Discord MUST be running for the spoofing to work",
+                Colors.YELLOW,
+            )
+            print_color(
+                "[*] Wait a few seconds for Discord to scan processes", Colors.GRAY
+            )
+            print_color(
+                "[*] TIP: You can run this tool multiple times to emulate multiple games!",
+                Colors.MAGENTA,
+            )
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print_color(f"[!] Failed to auto-launch: {e}", Colors.YELLOW)
             print_color(f"[*] You can manually run: {exe_path}", Colors.CYAN)
             return False
@@ -390,13 +416,16 @@ class GameFaker:
         if not config.AUTO_DELETE:
             return
 
-        print_color("\n[*] AUTO_DELETE enabled. Cleaning up faked processes and files...", Colors.CYAN)
+        print_color(
+            "\n[*] AUTO_DELETE enabled. Cleaning up faked processes and files...",
+            Colors.CYAN,
+        )
 
         # 1. Terminate all launched processes
         for proc in self._processes:
             try:
                 proc.terminate()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         # Wait a moment for processes to release file handles
@@ -405,7 +434,7 @@ class GameFaker:
             for proc in self._processes:
                 try:
                     proc.kill()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         # 2. Delete all created files
@@ -417,18 +446,22 @@ class GameFaker:
                         file_path.unlink()
                     deleted = True
                     break
-                except Exception:
+                except Exception:  # noqa: BLE001
                     time.sleep(0.2)
             if not deleted and file_path.exists():
-                print_color(f"[!] Failed to delete: {file_path} (file is locked)", Colors.YELLOW)
+                print_color(
+                    f"[!] Failed to delete: {file_path} (file is locked)", Colors.YELLOW
+                )
 
         # 3. Clean up empty parent directories (deepest first)
-        sorted_dirs = sorted(self._created_dirs, key=lambda p: len(p.parts), reverse=True)
+        sorted_dirs = sorted(
+            self._created_dirs, key=lambda p: len(p.parts), reverse=True
+        )
         for dir_path in sorted_dirs:
             try:
                 if dir_path.exists() and not any(dir_path.iterdir()):
                     dir_path.rmdir()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         print_color("[OK] Cleanup complete!", Colors.GREEN)
@@ -442,16 +475,23 @@ def manual_mode(faker: GameFaker) -> None:
     print_color("    • TslGame.exe (PUBG)", Colors.GRAY)
     print_color("    • League of Legends.exe (LoL)", Colors.GRAY)
     print_color("    • Overwatch.exe", Colors.GRAY)
-    print_color("[*] Make sure the name matches exactly (case-sensitive on some systems)", Colors.GRAY)
+    print_color(
+        "[*] Make sure the name matches exactly (case-sensitive on some systems)",
+        Colors.GRAY,
+    )
     print()
 
-    exe_name = input(f"{Colors.BOLD}Executable name{Colors.RESET} (or 'back'): ").strip()
-    if not exe_name or exe_name.lower() in ('back', 'b'):
+    exe_name = input(
+        f"{Colors.BOLD}Executable name{Colors.RESET} (or 'back'): "
+    ).strip()
+    if not exe_name or exe_name.lower() in ("back", "b"):
         return
 
     print(f"\n{Colors.BOLD}Summary:{Colors.RESET}")
     print(f"  Executable: {Colors.CYAN}{exe_name}{Colors.RESET}")
-    print(f"  Path: {Colors.GRAY}{faker.chosen_path / config.FAKE_EXE_DIR / exe_name}{Colors.RESET}")
+    print(
+        f"  Path: {Colors.GRAY}{faker.chosen_path / config.FAKE_EXE_DIR / exe_name}{Colors.RESET}"
+    )
 
     if not ask_confirm():
         print_color("\n[!] Operation cancelled", Colors.YELLOW)
@@ -463,6 +503,9 @@ def manual_mode(faker: GameFaker) -> None:
         print()
         faker.launch_executable(result)
         print_color("\n[OK] Setup complete!", Colors.GREEN, bold=True)
-        print_color("[!] IMPORTANT: Discord MUST be running for the spoofing to work", Colors.YELLOW)
+        print_color(
+            "[!] IMPORTANT: Discord MUST be running for the spoofing to work",
+            Colors.YELLOW,
+        )
 
     input(f"\n{Colors.GRAY}Press Enter to continue...{Colors.RESET}")
