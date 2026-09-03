@@ -12,7 +12,7 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-
+from orbshacker import _version as _build_version
 
 def get_git_version() -> str:
     """Retrieve the latest tag from Git, falling back to '0.0.0'."""
@@ -28,7 +28,7 @@ def get_git_version() -> str:
             return tag.lstrip("v")
     except Exception:
         pass
-    return "0.0.0"
+    return getattr(_build_version, "VERSION", "0.0.0") # Fallback to the version in _version.py if git fails
 
 
 def main():
@@ -58,6 +58,8 @@ def main():
         "--name",
         "orbshacker",
         "--noconsole",
+        "--icon",
+        "orbshacker.ico",
         "--add-data",
         "settings.py;.",
         "--collect-all",

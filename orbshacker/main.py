@@ -18,6 +18,16 @@ from .errors import DatabaseLoadError
 
 def main() -> None:
     """Main application loop."""
+
+    try:
+        subprocess.run(
+            'cls' if os.name == 'nt' else 'clear',
+            shell=True,
+            check=False,
+        )
+    except Exception:
+        pass
+
     try:
         auto_update()
     except Exception:
