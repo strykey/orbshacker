@@ -6,7 +6,9 @@ executable name, the copy runs this timer. Discord sees the process name
 and thinks the game is running.
 """
 
+import sys
 import tkinter as tk
+from orbshacker import config
 
 WINDOW_TITLE     = "Timer"
 WINDOW_SIZE      = "400x250"
@@ -27,6 +29,20 @@ class TimerApp:
         self.root.configure(bg=BG_COLOR)
 
         self.remaining = minutes * 60
+
+        self.auto_close = tk.BooleanVar(value=getattr(config, "AUTO_CLOSE", True))
+        self.auto_close_toggle = tk.Checkbutton(
+            root,
+            text="Close when timer ends",
+            variable=self.auto_close,
+            font=("Segoe UI", 10),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
+            activeforeground=TEXT_COLOR,
+            activebackground=BG_COLOR,
+            selectcolor=BG_COLOR,
+        )
+        self.auto_close_toggle.pack(pady=(15, 0))
 
         self.timer_label: tk.Label = tk.Label(
             root, text=f"{minutes:02d}:00",
@@ -52,13 +68,19 @@ class TimerApp:
             self.timer_label.config(text="00:00", fg=DONE_COLOR)
             self.status_label.config(text="Complete", fg=DONE_COLOR)
             self.root.update()
-            self.trigger_self_destruction()
+            
+            if config.AUTO_DELETE:
+                self.trigger_self_destruction()
+
+            # If AUTO_CLOSE is enabled, but AUTO_DELETE is not, close the window and exit
+            elif self.auto_close.get():
+                self.root.destroy()
+                import sys
+                sys.exit(0)
+
 
     def trigger_self_destruction(self) -> None:
         """Spawn a detached command to delete faked files and directories, and exit."""
-        from orbshacker import config
-        if not config.AUTO_DELETE:
-            return
 
         import sys
         import subprocess

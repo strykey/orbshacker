@@ -29,6 +29,7 @@ from pathlib import Path
 
 # Baked configurations
 AUTO_DELETE = False
+AUTO_CLOSE = True
 TIMER_MINUTES = 15
 STEAM_MANIFEST_PATH = None
 
@@ -40,6 +41,21 @@ class TimerApp:
         root.configure(bg="#1a1a1a")
         self.root = root
         self.remaining = minutes * 60
+
+        self.auto_close = tk.BooleanVar(value=AUTO_CLOSE)
+        self.auto_close_toggle = tk.Checkbutton(
+            root,
+            text="Close when timer ends",
+            variable=self.auto_close,
+            font=("Segoe UI", 10),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            selectcolor="#1a1a1a",
+        )
+        self.auto_close_toggle.pack(pady=(15, 0))
+
         self.label = tk.Label(root, text=f"{minutes:02d}:00", font=("Consolas", 56, "bold"),
                               fg="#e0e0e0", bg="#1a1a1a")
         self.label.pack(expand=True)
@@ -60,6 +76,9 @@ class TimerApp:
             self.root.update()
             if AUTO_DELETE:
                 self.trigger_self_destruction()
+            elif self.auto_close.get():
+                self.root.destroy()
+                sys.exit(0)
 
     def trigger_self_destruction(self):
         exe_path = Path(sys.executable)

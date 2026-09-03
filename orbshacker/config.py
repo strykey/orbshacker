@@ -26,6 +26,7 @@ def _get_default_json_content() -> str:
     content = {
         "CHOSEN_FOLDER": desktop_str,
         "AUTO_DELETE": False,
+        "AUTO_CLOSE": True,
         "TIMER_MINUTES": 15
     }
     return json.dumps(content, indent=2)
@@ -205,6 +206,7 @@ SLEEP_LONG         = 2.0
 FAKE_EXE_DIR       = sanitize_relative_path(_get("FAKE_EXE_DIR", "Win64"))
 MAX_SEARCH_RESULTS = 20
 AUTO_DELETE        = _get("AUTO_DELETE",        False)
+AUTO_CLOSE         = _get("AUTO_CLOSE",         True)
 TIMER_MINUTES      = _get("TIMER_MINUTES",      15)
 STEAM_MANIFEST_PATH = _get("STEAM_MANIFEST_PATH", None)
 
