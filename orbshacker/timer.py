@@ -6,7 +6,11 @@ executable name, the copy runs this timer. Discord sees the process name
 and thinks the game is running.
 """
 
+import sys
 import tkinter as tk
+from pathlib import Path
+
+from orbshacker import config
 
 WINDOW_TITLE     = "Timer"
 WINDOW_SIZE      = "400x250"
@@ -16,53 +20,200 @@ ACCENT_COLOR     = "#4a9eff"
 SECONDARY_COLOR  = "#666666"
 DONE_COLOR       = "#ff6b6b"
 TIMER_MINUTES    = 15
-
+CLOSE_GRACE_PERIOD_SECONDS = 10
 
 class TimerApp:
-    def __init__(self, root: tk.Tk, minutes: int = 15):
+    def __init__(self, root: tk.Tk, minutes: int = 15, title: str = "Timer"):
+        root.title(title)
         self.root: tk.Tk = root
-        self.root.title(WINDOW_TITLE)
         self.root.geometry(WINDOW_SIZE)
         self.root.resizable(False, False)
         self.root.configure(bg=BG_COLOR)
 
         self.remaining = minutes * 60
+        self.closing = False
+
+        self.auto_close = tk.BooleanVar(value=config.AUTO_CLOSE)
+        self.auto_close_toggle = tk.Checkbutton(
+            root,
+            text="Close when timer ends",
+            variable=self.auto_close,
+            command=self.toggle_auto_close,
+            font=("Segoe UI", 10),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
+            activeforeground=TEXT_COLOR,
+            activebackground=BG_COLOR,
+            cursor="hand2",
+            selectcolor=BG_COLOR,
+            bd=1,
+        )
+        self.auto_close_toggle.pack(pady=(15, 0))
 
         self.timer_label: tk.Label = tk.Label(
-            root, text=f"{minutes:02d}:00",
-            font=("Consolas", 56, "bold"), fg=TEXT_COLOR, bg=BG_COLOR,
+            root,
+            text=f"{minutes:02d}:00",
+            font=("Consolas", 56, "bold"),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
         )
         self.timer_label.pack(expand=True)
 
-        self.status_label: tk.Label = tk.Label(
-            root, text="Running",
-            font=("Segoe UI", 10), fg=SECONDARY_COLOR, bg=BG_COLOR,
+        self.time_adjust_label = tk.Label(
+            root,
+            text="Add or reduce time",
+            font=("Segoe UI", 9),
+            fg=SECONDARY_COLOR,
+            bg=BG_COLOR,
         )
-        self.status_label.pack(side="bottom", pady=20)
+        self.time_adjust_label.pack()
 
+        self.time_adjust_frame = tk.Frame(root, bg=BG_COLOR)
+        self.time_adjust_frame.pack(pady=(2, 10))
+
+        self.minus_button = tk.Button(
+            self.time_adjust_frame,
+            text="-",
+            command=lambda: self.adjust_time(-30),
+            font=("Segoe UI", 18, "bold"),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
+            activeforeground=TEXT_COLOR,
+            activebackground=BG_COLOR,
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.minus_button.pack(side="left")
+
+        self.time_adjust_label_value = tk.Label(
+            self.time_adjust_frame,
+            text="30s",
+            font=("Segoe UI", 10),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
+            padx=8,
+        )
+        self.time_adjust_label_value.pack(side="left")
+
+        self.plus_button = tk.Button(
+            self.time_adjust_frame,
+            text="+",
+            command=lambda: self.adjust_time(30),
+            font=("Segoe UI", 14, "bold"),
+            fg=TEXT_COLOR,
+            bg=BG_COLOR,
+            activeforeground=TEXT_COLOR,
+            activebackground=BG_COLOR,
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.plus_button.pack(side="left")
+
+        self.status_label: tk.Label = tk.Label(
+            root,
+            text="Running",
+            font=("Segoe UI", 10),
+            fg=SECONDARY_COLOR,
+            bg=BG_COLOR,
+        )
+        self.status_label.pack(side="bottom", pady=(0, 15))
+
+        self.update_time_adjust_buttons()
         self._tick()
 
     def _tick(self):
         m, s = divmod(self.remaining, 60)
         self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
         if self.remaining > 0:
             self.remaining -= 1
+            self.update_time_adjust_buttons()
             self.root.after(1000, self._tick)
         else:
             self.timer_label.config(text="00:00", fg=DONE_COLOR)
             self.status_label.config(text="Complete", fg=DONE_COLOR)
+            self.update_time_adjust_buttons()
             self.root.update()
-            self.trigger_self_destruction()
+
+            if config.AUTO_DELETE:
+                self.trigger_self_destruction()
+            elif self.auto_close.get():
+                self.start_close_countdown()
+            else:
+                self.timer_label.config(text="00:00", fg=DONE_COLOR)
+
+    def toggle_auto_close(self) -> None:
+        if self.auto_close.get() and self.remaining <= 0:
+            if config.AUTO_DELETE:
+                return
+
+            self.start_close_countdown()
+
+    def adjust_time(self, seconds: int) -> None:
+        self.remaining = max(0, self.remaining + seconds)
+
+        m, s = divmod(self.remaining, 60)
+        self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
+        self.update_time_adjust_buttons()
+
+    def update_time_adjust_buttons(self) -> None:
+        if self.closing:
+            self.minus_button.config(state="disabled")
+            self.plus_button.config(state="disabled")
+            return
+
+        minus_state = "disabled" if self.remaining <= 30 else "normal"
+        plus_state = "disabled" if self.remaining <= 0 else "normal"
+
+        self.minus_button.config(state=minus_state)
+        self.plus_button.config(state=plus_state)
+
+    def start_close_countdown(self) -> None:
+        if self.closing:
+            return
+
+        self.closing = True
+        self.auto_close_toggle.config(state="disabled")
+        self.minus_button.config(state="disabled")
+        self.plus_button.config(state="disabled")
+        self.timer_label.config(
+            font=("Consolas", 32, "bold"),
+        )
+        self._close_countdown(CLOSE_GRACE_PERIOD_SECONDS )
+
+    def _close_countdown(self, remaining: int) -> None:
+        if remaining <= 0:
+            self.root.destroy()
+            sys.exit(0)
+
+        self.timer_label.config(
+            text=f"Closing in {remaining}",
+            fg=DONE_COLOR,
+        )
+
+        self.root.after(
+            1000,
+            lambda: self._close_countdown(remaining - 1),
+        )
 
     def trigger_self_destruction(self) -> None:
         """Spawn a detached command to delete faked files and directories, and exit."""
-        from orbshacker import config
-        if not config.AUTO_DELETE:
-            return
 
-        import sys
         import subprocess
-        from pathlib import Path
+        import sys
 
         # Resolve paths
         if getattr(sys, "frozen", False):
@@ -95,10 +246,7 @@ class TimerApp:
             files_to_delete.append(manifest_str)
 
         files_q = " ".join(f'"{f}"' for f in files_to_delete)
-        cmd_parts = [
-            "ping 127.0.0.1 -n 3 > nul",
-            f'del /f /q {files_q}'
-        ]
+        cmd_parts = ["ping 127.0.0.1 -n 3 > nul", f"del /f /q {files_q}"]
 
         # Delete empty parent directory
         cmd_parts.append(f'rmdir "{dir_str}"')
@@ -124,5 +272,13 @@ class TimerApp:
 def run_timer(minutes: int = 15) -> None:
     """Entry point for the fake game process."""
     root = tk.Tk()
-    TimerApp(root, minutes)
+    root.iconbitmap(resource_path("orbshacker.ico"))
+    title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
+    TimerApp(root, minutes, title)
     root.mainloop()
+
+
+def resource_path(name: str) -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / name
+    return Path(__file__).parent / name

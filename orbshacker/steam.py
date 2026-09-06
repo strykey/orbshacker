@@ -5,18 +5,21 @@ steam.py – Steam quest helpers: registry, API, appmanifest, and quest mode UI.
 import os
 import sys
 import time
-from typing import Any, TypedDict, cast
 from pathlib import Path
+from typing import Any, TypedDict, cast
 
 from . import config
-from .path_utils import sanitize_filename, sanitize_path_segment, sanitize_relative_path
-from .faker import GameFaker
-from .ui import (
-    Colors, print_color, print_boxed_title,
-    loading_animation, ask_confirm,
-)
-from .net import fetch_json
 from .errors import NetworkError
+from .faker import GameFaker
+from .net import fetch_json
+from .path_utils import sanitize_filename, sanitize_path_segment, sanitize_relative_path
+from .ui import (
+    Colors,
+    ask_confirm,
+    loading_animation,
+    print_boxed_title,
+    print_color,
+)
 
 
 class SteamAppInfo(TypedDict):
@@ -48,35 +51,39 @@ except ImportError:
 
 # ── Registry helpers ──────────────────────────────────────────────────────────
 
+
 def get_steam_path() -> Path | None:
     """Read Steam installation path from Windows registry."""
-    if sys.platform != 'win32' or _winreg is None:
+    if sys.platform != "win32" or _winreg is None:
         return None
     try:
         key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
         value, _ = _winreg.QueryValueEx(key, "SteamPath")
         _winreg.CloseKey(key)
         return Path(value)
-    except Exception:
+    except Exception:  # noqa: BLE001
         fallback = Path("C:/Program Files (x86)/Steam")
         return fallback if fallback.exists() else None
 
 
 def get_steam_user_id() -> str:
     """Read the currently logged-in Steam user ID from registry."""
-    if sys.platform != 'win32' or _winreg is None:
+    if sys.platform != "win32" or _winreg is None:
         return "0"
     try:
-        key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess")
+        key = _winreg.OpenKey(
+            _winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess"
+        )
         value, _ = _winreg.QueryValueEx(key, "ActiveUser")
         _winreg.CloseKey(key)
         steam_id_64 = int(value) + 76561197960265728
         return str(steam_id_64)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return "0"
 
 
 # ── API helpers ───────────────────────────────────────────────────────────────
+
 
 def _pick_windows_exe(launch: SteamLaunchMap) -> str | None:
     """Return the first Windows .exe found in a SteamCMD launch dict."""
@@ -114,8 +121,13 @@ def fetch_steam_app_info(appid: int) -> SteamAppInfo | None:
         executable = sanitize_relative_path(executable)
 
         depots = cast(dict[str, Any], app_data.get("depots", {}))
-        depot_id = next((key for key in depots.keys() if key.isdigit()), None)
-        return {"name": name, "installdir": installdir, "executable": executable, "depot_id": depot_id}
+        depot_id = next((key for key in depots.keys() if key.isdigit()), None)  # noqa: SIM118
+        return {
+            "name": name,
+            "installdir": installdir,
+            "executable": executable,
+            "depot_id": depot_id,
+        }
 
     except NetworkError as e:
         print_color(f"[!] SteamCMD API error: {e}", Colors.YELLOW)
@@ -126,10 +138,13 @@ def search_steam_games(query: str) -> list[SteamStoreItem]:
     """Search Steam store. Returns list of {id, name} dicts."""
     try:
         loading_animation(f"Searching Steam for '{query}'", 1.0)
-        data = cast(dict[str, Any], fetch_json(
-            config.STEAM_STORE_SEARCH_URL,
-            params={"term": query, "l": "english", "cc": "US"},
-        ))
+        data = cast(
+            dict[str, Any],
+            fetch_json(
+                config.STEAM_STORE_SEARCH_URL,
+                params={"term": query, "l": "english", "cc": "US"},
+            ),
+        )
         return cast(list[SteamStoreItem], data.get("items", []))
     except NetworkError as e:
         print_color(f"[!] Steam search error: {e}", Colors.YELLOW)
@@ -138,7 +153,7 @@ def search_steam_games(query: str) -> list[SteamStoreItem]:
 
 # ── Appmanifest generation ────────────────────────────────────────────────────
 
-_ACF_TEMPLATE = '''"AppState"
+_ACF_TEMPLATE = """"AppState"
 {{
 \t"appid"\t\t"{appid}"
 \t"universe"\t\t"1"
@@ -175,18 +190,24 @@ _ACF_TEMPLATE = '''"AppState"
 \t{{
 \t}}
 }}
-'''
+"""
 
-_STAGED_DEPOT_TEMPLATE = '''
+_STAGED_DEPOT_TEMPLATE = """
 \t\t"{depot_id}"
 \t\t{{
 \t\t\t"manifest"\t\t"0"
 \t\t\t"size"\t\t"1073741824"
 \t\t\t"dlcappid"\t\t"0"
-\t\t}}'''
+\t\t}}"""
 
 
-def generate_appmanifest(appid: int, name: str, installdir: str, steam_path: Path, depot_id: str | None = None) -> Path | None:
+def generate_appmanifest(
+    appid: int,
+    name: str,
+    installdir: str,
+    steam_path: Path,
+    depot_id: str | None = None,
+) -> Path | None:
     """Generate a realistic appmanifest_<appid>.acf (StateFlags 1026)."""
     acf_content = _ACF_TEMPLATE.format(
         appid=appid,
@@ -203,12 +224,13 @@ def generate_appmanifest(appid: int, name: str, installdir: str, steam_path: Pat
             f.write(acf_content)
         print_color(f"[OK] Created appmanifest: {acf_path}", Colors.GREEN, bold=True)
         return acf_path
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print_color(f"[ERROR] Failed to write appmanifest: {e}", Colors.RED, bold=True)
         return None
 
 
 # ── Interactive UI for Steam Quest Mode ───────────────────────────────────────
+
 
 def _resolve_steam_path() -> Path | None:
     """Auto-detect or prompt for Steam path."""
@@ -235,16 +257,22 @@ def _pick_steam_game(query: str) -> SteamStoreItem | None:
         time.sleep(config.SLEEP_LONG)
         return None
 
-    print(f"\n{Colors.BOLD}{Colors.GREEN}Found {len(results)} result(s):{Colors.RESET}\n")
+    print(
+        f"\n{Colors.BOLD}{Colors.GREEN}Found {len(results)} result(s):{Colors.RESET}\n"
+    )
     print(f"{Colors.GRAY}{'─' * 60}{Colors.RESET}")
     for idx, game in enumerate(results, 1):
-        print(f"  {Colors.BOLD}{Colors.CYAN}{idx:2d}.{Colors.RESET} {Colors.WHITE}{game['name']}{Colors.RESET}  {Colors.GRAY}(AppID: {game['id']}){Colors.RESET}")
+        print(
+            f"  {Colors.BOLD}{Colors.CYAN}{idx:2d}.{Colors.RESET} {Colors.WHITE}{game['name']}{Colors.RESET}  {Colors.GRAY}(AppID: {game['id']}){Colors.RESET}"
+        )
         if idx < len(results):
             print(f"{Colors.GRAY}{'─' * 60}{Colors.RESET}")
     print()
 
-    raw = input(f"{Colors.BOLD}Select [1-{len(results)}]{Colors.RESET} (or 'back'): ").strip()
-    if raw.lower() in ('back', 'b', ''):
+    raw = input(
+        f"{Colors.BOLD}Select [1-{len(results)}]{Colors.RESET} (or 'back'): "
+    ).strip()
+    if raw.lower() in ("back", "b", ""):
         return None
     try:
         idx = int(raw)
@@ -261,14 +289,24 @@ def _prompt_app_info_manually(appid: int) -> SteamAppInfo:
     """Fallback: ask user to type Steam app info."""
     print_color("[!] Could not fetch app info automatically.", Colors.YELLOW)
     print_color("[*] Enter details manually:", Colors.CYAN)
-    name_raw = input(f"  {Colors.BOLD}Game name{Colors.RESET}: ").strip() or f"App {appid}"
-    install_raw = input(f"  {Colors.BOLD}Install dir{Colors.RESET} (folder in steamapps/common): ").strip() or f"App{appid}"
-    exe_raw = input(f"  {Colors.BOLD}Executable{Colors.RESET} (e.g. Bin/Game.exe): ").strip() or "Game.exe"
+    name_raw = (
+        input(f"  {Colors.BOLD}Game name{Colors.RESET}: ").strip() or f"App {appid}"
+    )
+    install_raw = (
+        input(
+            f"  {Colors.BOLD}Install dir{Colors.RESET} (folder in steamapps/common): "
+        ).strip()
+        or f"App{appid}"
+    )
+    exe_raw = (
+        input(f"  {Colors.BOLD}Executable{Colors.RESET} (e.g. Bin/Game.exe): ").strip()
+        or "Game.exe"
+    )
     return {
-        "name":       sanitize_filename(name_raw),
+        "name": sanitize_filename(name_raw),
         "installdir": sanitize_path_segment(install_raw),
         "executable": sanitize_relative_path(exe_raw),
-        "depot_id":   None,
+        "depot_id": None,
     }
 
 
@@ -276,8 +314,14 @@ def steam_quest_mode(faker: GameFaker) -> None:
     """Steam Quest Mode – generates appmanifest + fake exe for any Steam appid."""
     print_boxed_title("STEAM QUEST MODE", width=55, color=Colors.CYAN)
     print_color("[*] This mode generates a fake Steam appmanifest + exe", Colors.CYAN)
-    print_color("[*] Required for games that verify Steam ownership (Marathon, Toxic Commando…)", Colors.GRAY)
-    print_color("[*] Search by name — demos and DLCs are separate, pick the right one!", Colors.YELLOW)
+    print_color(
+        "[*] Required for games that verify Steam ownership (Marathon, Toxic Commando…)",
+        Colors.GRAY,
+    )
+    print_color(
+        "[*] Search by name — demos and DLCs are separate, pick the right one!",
+        Colors.YELLOW,
+    )
     print()
 
     steam_path = _resolve_steam_path()
@@ -286,7 +330,7 @@ def steam_quest_mode(faker: GameFaker) -> None:
     print_color(f"[OK] Steam found at: {steam_path}", Colors.GREEN)
 
     query = input(f"\n{Colors.BOLD}Search game{Colors.RESET} (or 'back'): ").strip()
-    if query.lower() in ('back', 'b', ''):
+    if query.lower() in ("back", "b", ""):
         return
 
     game = _pick_steam_game(query)
@@ -294,7 +338,9 @@ def steam_quest_mode(faker: GameFaker) -> None:
         return
 
     appid = int(game["id"])
-    print_color(f"\n[OK] Selected: {game['name']} (AppID: {appid})", Colors.GREEN, bold=True)
+    print_color(
+        f"\n[OK] Selected: {game['name']} (AppID: {appid})", Colors.GREEN, bold=True
+    )
     info = fetch_steam_app_info(appid) or _prompt_app_info_manually(appid)
 
     print(f"\n{Colors.BOLD}Detected info:{Colors.RESET}")
@@ -302,16 +348,22 @@ def steam_quest_mode(faker: GameFaker) -> None:
     print(f"  Install dir: {Colors.CYAN}{info['installdir']}{Colors.RESET}")
     print(f"  Executable:  {Colors.CYAN}{info['executable']}{Colors.RESET}")
 
-    override = input(f"\n{Colors.BOLD}Override executable path?{Colors.RESET} [leave empty to keep]: ").strip()
+    override = input(
+        f"\n{Colors.BOLD}Override executable path?{Colors.RESET} [leave empty to keep]: "
+    ).strip()
     if override:
-        info['executable'] = sanitize_relative_path(override)
-    info['installdir'] = sanitize_path_segment(info['installdir'])
+        info["executable"] = sanitize_relative_path(override)
+    info["installdir"] = sanitize_path_segment(info["installdir"])
 
     exe_full_path = f"{info['installdir']}/{info['executable']}"
-    fake_exe_path = steam_path / "steamapps" / "common" / exe_full_path.replace("/", os.sep)
+    fake_exe_path = (
+        steam_path / "steamapps" / "common" / exe_full_path.replace("/", os.sep)
+    )
 
     print(f"\n{Colors.BOLD}Summary:{Colors.RESET}")
-    print(f"  AppManifest: {Colors.GRAY}{steam_path / 'steamapps' / f'appmanifest_{appid}.acf'}{Colors.RESET}")
+    print(
+        f"  AppManifest: {Colors.GRAY}{steam_path / 'steamapps' / f'appmanifest_{appid}.acf'}{Colors.RESET}"
+    )
     print(f"  Fake exe:    {Colors.GRAY}{fake_exe_path}{Colors.RESET}")
 
     if not ask_confirm():
@@ -319,7 +371,13 @@ def steam_quest_mode(faker: GameFaker) -> None:
         time.sleep(config.SLEEP_SHORT)
         return
 
-    acf = generate_appmanifest(appid, info['name'], info['installdir'], steam_path, depot_id=info.get('depot_id'))
+    acf = generate_appmanifest(
+        appid,
+        info["name"],
+        info["installdir"],
+        steam_path,
+        depot_id=info.get("depot_id"),
+    )
     if not acf:
         print_color("[ERROR] Failed to create appmanifest. Aborting.", Colors.RED)
         time.sleep(config.SLEEP_SHORT)
@@ -332,7 +390,7 @@ def steam_quest_mode(faker: GameFaker) -> None:
         config.STEAM_MANIFEST_PATH = acf
         faker.copy_exe_to(fake_exe_path)
         print_color(f"[OK] Created: {fake_exe_path}", Colors.GREEN, bold=True)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print_color(f"[ERROR] Failed to copy exe: {e}", Colors.RED, bold=True)
         time.sleep(config.SLEEP_SHORT)
         return

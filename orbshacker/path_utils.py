@@ -11,7 +11,10 @@ _ILLEGAL_CHARS_RE = re.compile(r'[\x00-\x1f<>:"/\\|?*™®©℠℗]')
 
 # Windows reserved device names
 _RESERVED_NAMES = {
-    "CON", "PRN", "AUX", "NUL",
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
     *(f"COM{i}" for i in range(1, 10)),
     *(f"LPT{i}" for i in range(1, 10)),
 }
@@ -22,7 +25,7 @@ def sanitize_filename(name: str, replacement: str = "") -> str:
         return "unnamed"
 
     cleaned = _ILLEGAL_CHARS_RE.sub(replacement, str(name))
-    cleaned = re.sub(r'[\s.]+$', '', cleaned.strip())
+    cleaned = re.sub(r"[\s.]+$", "", cleaned.strip())
 
     if not cleaned:
         return "unnamed"
@@ -43,7 +46,7 @@ def sanitize_relative_path(path_str: str, replacement: str = "") -> str:
         return "unnamed"
 
     normalized = str(path_str).replace("\\", "/")
-    normalized = re.sub(r'^[a-zA-Z]:[/\\]*', '', normalized)
+    normalized = re.sub(r"^[a-zA-Z]:[/\\]*", "", normalized)
     raw_segments = normalized.split("/")
     cleaned_segments = []
 

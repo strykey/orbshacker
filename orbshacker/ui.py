@@ -23,7 +23,7 @@ class Colors:
 
 def print_color(text: str, color: str = Colors.WHITE, bold: bool = False) -> None:
     """Print colored text."""
-    style = Colors.BOLD if bold else ''
+    style = Colors.BOLD if bold else ""
     print(f"{style}{color}{text}{Colors.RESET}")
 
 
@@ -69,37 +69,47 @@ def loading_animation(text: str, duration: float = 1.5) -> None:
     i = 0
     while time.time() < end_time:
         try:
-            sys.stdout.write(f"\r{Colors.CYAN}{frames[i % len(frames)]}{Colors.RESET} {text}")
+            sys.stdout.write(
+                f"\r{Colors.CYAN}{frames[i % len(frames)]}{Colors.RESET} {text}"
+            )
             sys.stdout.flush()
         except UnicodeEncodeError:
             try:
-                sys.stdout.write(f"\r{Colors.CYAN}{ascii_frames[i % len(ascii_frames)]}{Colors.RESET} {text}")
+                sys.stdout.write(
+                    f"\r{Colors.CYAN}{ascii_frames[i % len(ascii_frames)]}{Colors.RESET} {text}"
+                )
                 sys.stdout.flush()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
         time.sleep(0.1)
         i += 1
     try:
         sys.stdout.write("\r" + " " * (len(text) + 5) + "\r")
         sys.stdout.flush()
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
 
 
 def ask_confirm(prompt: str = "Create and launch?") -> bool:
     """Ask a Y/n confirmation question. Returns True if user confirms."""
     answer = input(f"\n{Colors.BOLD}{prompt}{Colors.RESET} [Y/n]: ").strip().lower()
-    return answer in ('', 'y', 'yes')
+    return answer in ("", "y", "yes")
 
 
 def print_menu() -> None:
     """Display main menu."""
     print_boxed_title("MAIN MENU", width=50, color=Colors.CYAN)
-    print(f"  {Colors.BOLD}{Colors.GREEN}1.{Colors.RESET} Search Discord database (Official API)")
-    print(f"  {Colors.BOLD}{Colors.GREEN}2.{Colors.RESET} Manual mode (custom executable)")
-    print(f"  {Colors.BOLD}{Colors.YELLOW}3.{Colors.RESET} Steam Quest Mode  {Colors.YELLOW}[NEW - for Marathon, Toxic Commando…]{Colors.RESET}")
+    print(
+        f"  {Colors.BOLD}{Colors.GREEN}1.{Colors.RESET} Search Discord database (Official API)"
+    )
+    print(
+        f"  {Colors.BOLD}{Colors.GREEN}2.{Colors.RESET} Manual mode (custom executable)"
+    )
+    print(
+        f"  {Colors.BOLD}{Colors.YELLOW}3.{Colors.RESET} Steam Quest Mode  {Colors.YELLOW}[NEW - for Marathon, Toxic Commando…]{Colors.RESET}"
+    )
     print(f"  {Colors.BOLD}{Colors.GREEN}4.{Colors.RESET} Credits & Info")
     print(f"  {Colors.BOLD}{Colors.RED}5.{Colors.RESET} Exit\n")
 
