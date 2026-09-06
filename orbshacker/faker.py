@@ -34,6 +34,7 @@ from pathlib import Path
 AUTO_DELETE = False
 AUTO_CLOSE = True
 TIMER_MINUTES = 15
+CLOSE_GRACE_PERIOD_SECONDS  = 10
 STEAM_MANIFEST_PATH = None
 
 class TimerApp:
@@ -44,6 +45,7 @@ class TimerApp:
         root.configure(bg="#1a1a1a")
         self.root = root
         self.remaining = minutes * 60
+        self.closing = False
 
         self.auto_close = tk.BooleanVar(value=AUTO_CLOSE)
         self.auto_close_toggle = tk.Checkbutton(
@@ -165,13 +167,16 @@ class TimerApp:
             if AUTO_DELETE:
                 self.trigger_self_destruction()
             elif self.auto_close.get():
-                self.root.destroy()
-                sys.exit(0)
+                self.start_close_countdown()
+            else:
+                self.timer_label.config(text="00:00", fg="#ff6b6b")
 
     def toggle_auto_close(self) -> None:
         if self.auto_close.get() and self.remaining <= 0:
-            self.root.destroy()
-            sys.exit(0)
+            if AUTO_DELETE:
+                return
+
+            self.start_close_countdown()
         
     def adjust_time(self, seconds):
         self.remaining = max(0, self.remaining + seconds)
@@ -182,11 +187,44 @@ class TimerApp:
         self.update_time_adjust_buttons()
 
     def update_time_adjust_buttons(self) -> None:
+        if self.closing:
+            self.minus_button.config(state="disabled")
+            self.plus_button.config(state="disabled")
+            return
+
         minus_state = "disabled" if self.remaining <= 30 else "normal"
         plus_state = "disabled" if self.remaining <= 0 else "normal"
 
         self.minus_button.config(state=minus_state)
         self.plus_button.config(state=plus_state)
+
+    def start_close_countdown(self) -> None:
+        if self.closing:
+            return
+
+        self.closing = True
+        self.auto_close_toggle.config(state="disabled")
+        self.minus_button.config(state="disabled")
+        self.plus_button.config(state="disabled")
+        self.timer_label.config(
+            font=("Consolas", 32, "bold"),
+        )
+        self._close_countdown(CLOSE_GRACE_PERIOD_SECONDS )
+
+    def _close_countdown(self, remaining: int) -> None:
+        if remaining <= 0:
+            self.root.destroy()
+            sys.exit(0)
+
+        self.timer_label.config(
+            text=f"Closing in {remaining}",
+            fg="#ff6b6b",
+        )
+
+        self.root.after(
+            1000,
+            lambda: self._close_countdown(remaining - 1),
+        )
 
     def trigger_self_destruction(self):
         exe_path = Path(sys.executable)

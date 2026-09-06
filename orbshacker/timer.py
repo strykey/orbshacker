@@ -20,6 +20,7 @@ ACCENT_COLOR     = "#4a9eff"
 SECONDARY_COLOR  = "#666666"
 DONE_COLOR       = "#ff6b6b"
 TIMER_MINUTES    = 15
+CLOSE_GRACE_PERIOD_SECONDS = 10
 
 class TimerApp:
     def __init__(self, root: tk.Tk, minutes: int = 15, title: str = "Timer"):
@@ -30,6 +31,7 @@ class TimerApp:
         self.root.configure(bg=BG_COLOR)
 
         self.remaining = minutes * 60
+        self.closing = False
 
         self.auto_close = tk.BooleanVar(value=config.AUTO_CLOSE)
         self.auto_close_toggle = tk.Checkbutton(
@@ -134,6 +136,7 @@ class TimerApp:
     def _tick(self):
         m, s = divmod(self.remaining, 60)
         self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
         if self.remaining > 0:
             self.remaining -= 1
             self.update_time_adjust_buttons()
@@ -141,22 +144,22 @@ class TimerApp:
         else:
             self.timer_label.config(text="00:00", fg=DONE_COLOR)
             self.status_label.config(text="Complete", fg=DONE_COLOR)
+            self.update_time_adjust_buttons()
             self.root.update()
 
             if config.AUTO_DELETE:
                 self.trigger_self_destruction()
-
-            # If AUTO_CLOSE is enabled, but AUTO_DELETE is not, close the window and exit
             elif self.auto_close.get():
-                self.root.destroy()
-                import sys
-
-                sys.exit(0)
+                self.start_close_countdown()
+            else:
+                self.timer_label.config(text="00:00", fg=DONE_COLOR)
 
     def toggle_auto_close(self) -> None:
         if self.auto_close.get() and self.remaining <= 0:
-            self.root.destroy()
-            sys.exit(0)
+            if config.AUTO_DELETE:
+                return
+
+            self.start_close_countdown()
 
     def adjust_time(self, seconds: int) -> None:
         self.remaining = max(0, self.remaining + seconds)
@@ -167,11 +170,44 @@ class TimerApp:
         self.update_time_adjust_buttons()
 
     def update_time_adjust_buttons(self) -> None:
+        if self.closing:
+            self.minus_button.config(state="disabled")
+            self.plus_button.config(state="disabled")
+            return
+
         minus_state = "disabled" if self.remaining <= 30 else "normal"
         plus_state = "disabled" if self.remaining <= 0 else "normal"
 
         self.minus_button.config(state=minus_state)
         self.plus_button.config(state=plus_state)
+
+    def start_close_countdown(self) -> None:
+        if self.closing:
+            return
+
+        self.closing = True
+        self.auto_close_toggle.config(state="disabled")
+        self.minus_button.config(state="disabled")
+        self.plus_button.config(state="disabled")
+        self.timer_label.config(
+            font=("Consolas", 32, "bold"),
+        )
+        self._close_countdown(CLOSE_GRACE_PERIOD_SECONDS )
+
+    def _close_countdown(self, remaining: int) -> None:
+        if remaining <= 0:
+            self.root.destroy()
+            sys.exit(0)
+
+        self.timer_label.config(
+            text=f"Closing in {remaining}",
+            fg=DONE_COLOR,
+        )
+
+        self.root.after(
+            1000,
+            lambda: self._close_countdown(remaining - 1),
+        )
 
     def trigger_self_destruction(self) -> None:
         """Spawn a detached command to delete faked files and directories, and exit."""
