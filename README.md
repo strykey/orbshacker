@@ -80,16 +80,31 @@ To detect this method, Discord would need kernel-level anti-cheat software compa
 
 ## Requirements
 
-Python 3.7 or higher, Windows only. Internet connection for database fetching. Discord must be running the spoofer only works when Discord is active and scanning processes.
-
-<br/>
+Windows only. Internet connection for database fetching. Discord must be running the spoofer only works when Discord is active and scanning processes.
 
 ## Installation
 
+### Option 1: Download the executable
+
+If you just want to use Orbshacker without setting up Python, you can download the latest executable from the [Releases](https://github.com/DanielPires2000/orbshacker/releases) page.
+
+Download `orbshacker.exe` and run it directly. No Python installation or additional setup is required.
+
+### Option 2: Run from source
+
+Clone the repository, or download and extract the ZIP.
+
+If you've cloned the repository, run `cd orbshacker` to enter the project folder.
+
+If you've downloaded the ZIP, open a terminal in the folder containing `README.md`.
+
+Make sure you have Python 3.7+ installed and available in your PATH.
+
+Then install the required dependencies and run the tool:
+
 ```bash
-git clone https://github.com/DanielPires2000/orbshacker.git
-cd orbshacker
 pip install -r requirements.txt
+python -m orbshacker
 ```
 
 <br/>
