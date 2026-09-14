@@ -167,7 +167,7 @@ def _resolve_version() -> str:
 
 # ── App identity ──────────────────────────────────────────────────────────────
 VERSION   = _resolve_version()
-DEVELOPER = "Strykey / Daniel Pires / Pannenkoekisus"
+DEVELOPER = "Strykey / Daniel Pires / pannenkoekissus"
 
 # ── GitHub repo ───────────────────────────────────────────────────────────────
 GITHUB_REPO_OWNER = "DanielPires2000"
