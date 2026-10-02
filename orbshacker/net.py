@@ -2,8 +2,10 @@
 net.py – Shared HTTP helpers.
 """
 
+from collections.abc import Mapping
+from typing import Any
+
 import requests
-from typing import Any, Mapping
 
 from . import config
 from .errors import NetworkError

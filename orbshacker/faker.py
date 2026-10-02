@@ -6,22 +6,25 @@ In source mode:           copies pythonw.exe → GameName.exe + _orbshacker_time
 """
 
 import os
-import sys
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 from . import config
-from .path_utils import sanitize_relative_path, sanitize_filename
+from .path_utils import sanitize_relative_path
 from .ui import (
-    Colors, print_color, print_boxed_title,
-    loading_animation, ask_confirm,
+    Colors,
+    ask_confirm,
+    loading_animation,
+    print_boxed_title,
+    print_color,
 )
 
 # Timer code embedded for source mode – written as a standalone .pyw file
 # so that the renamed Python interpreter can run it without any package dependency.
-_TIMER_PYW_CODE = '''\
+_TIMER_PYW_CODE = """\
 import tkinter as tk
 import sys
 import subprocess
@@ -29,37 +32,199 @@ from pathlib import Path
 
 # Baked configurations
 AUTO_DELETE = False
+AUTO_CLOSE = True
 TIMER_MINUTES = 15
+CLOSE_GRACE_PERIOD_SECONDS  = 10
 STEAM_MANIFEST_PATH = None
 
 class TimerApp:
-    def __init__(self, root, minutes=15):
-        root.title("Timer")
+    def __init__(self, root, minutes=15, title="Timer"):
+        root.title(title)
         root.geometry("400x250")
         root.resizable(False, False)
         root.configure(bg="#1a1a1a")
         self.root = root
         self.remaining = minutes * 60
-        self.label = tk.Label(root, text=f"{minutes:02d}:00", font=("Consolas", 56, "bold"),
-                              fg="#e0e0e0", bg="#1a1a1a")
-        self.label.pack(expand=True)
-        self.status = tk.Label(root, text="Running", font=("Segoe UI", 10),
-                               fg="#666666", bg="#1a1a1a")
-        self.status.pack(side="bottom", pady=20)
+        self.closing = False
+
+        self.auto_close = tk.BooleanVar(value=AUTO_CLOSE)
+        self.auto_close_toggle = tk.Checkbutton(
+            root,
+            text="Close when timer ends",
+            variable=self.auto_close,
+            command=self.toggle_auto_close,
+            font=("Segoe UI", 10),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            cursor="hand2",
+            selectcolor="#1a1a1a",
+            bd=1,
+        )
+        self.auto_close_toggle.pack(pady=(15, 0))
+
+        self.timer_label = tk.Label(
+            root,
+            text=f"{minutes:02d}:00",
+            font=("Consolas", 56, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+        )
+        self.timer_label.pack(expand=True)
+
+        self.time_adjust_label = tk.Label(
+            root,
+            text="Add or reduce time",
+            font=("Segoe UI", 9),
+            fg="#666666",
+            bg="#1a1a1a",
+        )
+        self.time_adjust_label.pack()
+
+        self.time_adjust_frame = tk.Frame(
+            root,
+            bg="#1a1a1a",
+        )
+        self.time_adjust_frame.pack(pady=(2, 10))
+
+        self.minus_button = tk.Button(
+            self.time_adjust_frame,
+            text="-",
+            command=lambda: self.adjust_time(-30),
+            font=("Segoe UI", 18, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.minus_button.pack(side="left")
+
+        self.time_adjust_label_value = tk.Label(
+            self.time_adjust_frame,
+            text="30s",
+            font=("Segoe UI", 10),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            padx=8,
+        )
+        self.time_adjust_label_value.pack(side="left")
+
+        self.plus_button = tk.Button(
+            self.time_adjust_frame,
+            text="+",
+            command=lambda: self.adjust_time(30),
+            font=("Segoe UI", 14, "bold"),
+            fg="#e0e0e0",
+            bg="#1a1a1a",
+            activeforeground="#e0e0e0",
+            activebackground="#1a1a1a",
+            cursor="hand2",
+            width=2,
+            height=1,
+            padx=0,
+            pady=0,
+            relief="flat",
+            bd=0,
+            highlightthickness=0,
+        )
+        self.plus_button.pack(side="left")
+
+        self.status_label = tk.Label(
+            root,
+            text="Running",
+            font=("Segoe UI", 10),
+            fg="#666666",
+            bg="#1a1a1a",
+        )
+        self.status_label.pack(side="bottom", pady=(0, 15))
+
+        self.update_time_adjust_buttons()
         self._tick()
 
     def _tick(self):
         m, s = divmod(self.remaining, 60)
-        self.label.config(text=f"{m:02d}:{s:02d}")
+        self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
         if self.remaining > 0:
             self.remaining -= 1
-            self.label.after(1000, self._tick)
+            self.update_time_adjust_buttons()
+            self.root.after(1000, self._tick)
         else:
-            self.label.config(text="00:00", fg="#ff6b6b")
-            self.status.config(text="Complete", fg="#ff6b6b")
+            self.timer_label.config(text="00:00", fg="#ff6b6b")
+            self.status_label.config(text="Complete", fg="#ff6b6b")
+            self.update_time_adjust_buttons()
             self.root.update()
+
             if AUTO_DELETE:
                 self.trigger_self_destruction()
+            elif self.auto_close.get():
+                self.start_close_countdown()
+            else:
+                self.timer_label.config(text="00:00", fg="#ff6b6b")
+
+    def toggle_auto_close(self) -> None:
+        if self.auto_close.get() and self.remaining <= 0:
+            if AUTO_DELETE:
+                return
+
+            self.start_close_countdown()
+        
+    def adjust_time(self, seconds):
+        self.remaining = max(0, self.remaining + seconds)
+
+        m, s = divmod(self.remaining, 60)
+        self.timer_label.config(text=f"{m:02d}:{s:02d}")
+
+        self.update_time_adjust_buttons()
+
+    def update_time_adjust_buttons(self) -> None:
+        if self.closing:
+            self.minus_button.config(state="disabled")
+            self.plus_button.config(state="disabled")
+            return
+
+        minus_state = "disabled" if self.remaining <= 30 else "normal"
+        plus_state = "disabled" if self.remaining <= 0 else "normal"
+
+        self.minus_button.config(state=minus_state)
+        self.plus_button.config(state=plus_state)
+
+    def start_close_countdown(self) -> None:
+        if self.closing:
+            return
+
+        self.closing = True
+        self.auto_close_toggle.config(state="disabled")
+        self.minus_button.config(state="disabled")
+        self.plus_button.config(state="disabled")
+        self.timer_label.config(
+            font=("Consolas", 32, "bold"),
+        )
+        self._close_countdown(CLOSE_GRACE_PERIOD_SECONDS )
+
+    def _close_countdown(self, remaining: int) -> None:
+        if remaining <= 0:
+            self.root.destroy()
+            sys.exit(0)
+
+        self.timer_label.config(
+            text=f"Closing in {remaining}",
+            fg="#ff6b6b",
+        )
+
+        self.root.after(
+            1000,
+            lambda: self._close_countdown(remaining - 1),
+        )
 
     def trigger_self_destruction(self):
         exe_path = Path(sys.executable)
@@ -92,13 +257,14 @@ class TimerApp:
         sys.exit(0)
 
 root = tk.Tk()
-TimerApp(root, TIMER_MINUTES)
+title = sys.argv[1] if len(sys.argv) > 1 else "Timer"
+TimerApp(root, TIMER_MINUTES, title)
 root.mainloop()
-'''
+"""
 
 
 def _is_frozen() -> bool:
-    return getattr(sys, 'frozen', False)
+    return getattr(sys, "frozen", False)
 
 
 def _find_source_exe() -> Path:
@@ -166,6 +332,7 @@ class GameFaker:
         target_config = {
             "CHOSEN_FOLDER": str(config.CHOSEN_FOLDER).replace("\\", "/"),
             "AUTO_DELETE": config.AUTO_DELETE,
+            "AUTO_CLOSE": config.AUTO_CLOSE,
             "TIMER_MINUTES": config.TIMER_MINUTES,
         }
         manifest_path = getattr(config, "STEAM_MANIFEST_PATH", None)
@@ -173,52 +340,65 @@ class GameFaker:
             target_config["STEAM_MANIFEST_PATH"] = str(manifest_path).replace("\\", "/")
 
         import json
+
         if self._frozen:
             try:
                 json_data = json.dumps(target_config).encode("utf-8")
                 marker = b"__ORBSHACKER_BAKED_CONFIG__"
                 with open(target_path, "ab") as f:
                     f.write(marker + json_data + marker)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         else:
             timer_script = target_path.parent / "_orbshacker_timer.pyw"
             if not timer_script.exists():
                 code = _TIMER_PYW_CODE
-                code = code.replace("AUTO_DELETE = False", f"AUTO_DELETE = {config.AUTO_DELETE}")
-                code = code.replace("TIMER_MINUTES = 15", f"TIMER_MINUTES = {config.TIMER_MINUTES}")
+                code = code.replace(
+                    "AUTO_DELETE = False", f"AUTO_DELETE = {config.AUTO_DELETE}"
+                )
+                code = code.replace(
+                    "AUTO_CLOSE = True", f"AUTO_CLOSE = {config.AUTO_CLOSE}"
+                )
+                code = code.replace(
+                    "TIMER_MINUTES = 15", f"TIMER_MINUTES = {config.TIMER_MINUTES}"
+                )
                 if manifest_path:
-                    code = code.replace("STEAM_MANIFEST_PATH = None", f"STEAM_MANIFEST_PATH = {repr(str(manifest_path))}")
+                    code = code.replace(
+                        "STEAM_MANIFEST_PATH = None",
+                        f"STEAM_MANIFEST_PATH = {str(manifest_path)!r}",
+                    )
                 timer_script.write_text(code, encoding="utf-8")
                 self.register_created_file(timer_script)
 
     def create_fake_game(self, exe_name: str) -> Path | None:
         """Create fake game executable under Desktop/<FAKE_EXE_DIR>/."""
         exe_name = sanitize_relative_path(exe_name)
-        if not exe_name.lower().endswith('.exe'):
-            exe_name += '.exe'
+        if not exe_name.lower().endswith(".exe"):
+            exe_name += ".exe"
         target_path = self.chosen_path / config.FAKE_EXE_DIR / exe_name
         try:
             loading_animation(f"Creating {exe_name.split('/')[-1]}", 0.8)
             self.copy_exe_to(target_path)
             print_color(f"[OK] Created: {target_path}", Colors.GREEN, bold=True)
             return target_path
-        except Exception as e:
-            print_color(f"[ERROR] Failed to create executable: {e}", Colors.RED, bold=True)
+        except Exception as e:  # noqa: BLE001
+            print_color(
+                f"[ERROR] Failed to create executable: {e}", Colors.RED, bold=True
+            )
             print_color("[!] Check file permissions or disk space", Colors.YELLOW)
             return None
 
-    def launch_executable(self, exe_path: Path) -> bool:
+    def launch_executable(self, exe_path: Path, title: str = "Timer") -> bool:
         """Launch the fake game process in background."""
         try:
             loading_animation("Launching process", 0.8)
 
             if self._frozen:
-                args = [str(exe_path)]
+                args = [str(exe_path), title]
                 env = None
             else:
                 timer_script = exe_path.parent / "_orbshacker_timer.pyw"
-                args = [str(exe_path), str(timer_script)]
+                args = [str(exe_path), str(timer_script), title]
                 env = os.environ.copy()
                 base_prefix = Path(sys.base_prefix)
                 env["PYTHONHOME"] = str(base_prefix)
@@ -226,7 +406,7 @@ class GameFaker:
                 path_parts = [str(base_prefix), env.get("PATH", "")]
                 env["PATH"] = os.pathsep.join(part for part in path_parts if part)
 
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 DETACHED_PROCESS = 0x00000008
                 proc = subprocess.Popen(
                     args,
@@ -248,12 +428,23 @@ class GameFaker:
             self._processes.append(proc)
 
             print_color("[OK] Process launched in background", Colors.GREEN, bold=True)
-            print_color("[*] Discord should now detect the game (if Discord is running)", Colors.CYAN)
-            print_color("[!] IMPORTANT: Discord MUST be running for the spoofing to work", Colors.YELLOW)
-            print_color("[*] Wait a few seconds for Discord to scan processes", Colors.GRAY)
-            print_color("[*] TIP: You can run this tool multiple times to emulate multiple games!", Colors.MAGENTA)
+            print_color(
+                "[*] Discord should now detect the game (if Discord is running)",
+                Colors.CYAN,
+            )
+            print_color(
+                "[!] IMPORTANT: Discord MUST be running for the spoofing to work",
+                Colors.YELLOW,
+            )
+            print_color(
+                "[*] Wait a few seconds for Discord to scan processes", Colors.GRAY
+            )
+            print_color(
+                "[*] TIP: You can run this tool multiple times to emulate multiple games!",
+                Colors.MAGENTA,
+            )
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print_color(f"[!] Failed to auto-launch: {e}", Colors.YELLOW)
             print_color(f"[*] You can manually run: {exe_path}", Colors.CYAN)
             return False
@@ -263,13 +454,16 @@ class GameFaker:
         if not config.AUTO_DELETE:
             return
 
-        print_color("\n[*] AUTO_DELETE enabled. Cleaning up faked processes and files...", Colors.CYAN)
+        print_color(
+            "\n[*] AUTO_DELETE enabled. Cleaning up faked processes and files...",
+            Colors.CYAN,
+        )
 
         # 1. Terminate all launched processes
         for proc in self._processes:
             try:
                 proc.terminate()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         # Wait a moment for processes to release file handles
@@ -278,7 +472,7 @@ class GameFaker:
             for proc in self._processes:
                 try:
                     proc.kill()
-                except Exception:
+                except Exception:  # noqa: BLE001, S110
                     pass
 
         # 2. Delete all created files
@@ -290,18 +484,22 @@ class GameFaker:
                         file_path.unlink()
                     deleted = True
                     break
-                except Exception:
+                except Exception:  # noqa: BLE001
                     time.sleep(0.2)
             if not deleted and file_path.exists():
-                print_color(f"[!] Failed to delete: {file_path} (file is locked)", Colors.YELLOW)
+                print_color(
+                    f"[!] Failed to delete: {file_path} (file is locked)", Colors.YELLOW
+                )
 
         # 3. Clean up empty parent directories (deepest first)
-        sorted_dirs = sorted(self._created_dirs, key=lambda p: len(p.parts), reverse=True)
+        sorted_dirs = sorted(
+            self._created_dirs, key=lambda p: len(p.parts), reverse=True
+        )
         for dir_path in sorted_dirs:
             try:
                 if dir_path.exists() and not any(dir_path.iterdir()):
                     dir_path.rmdir()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         print_color("[OK] Cleanup complete!", Colors.GREEN)
@@ -315,16 +513,23 @@ def manual_mode(faker: GameFaker) -> None:
     print_color("    • TslGame.exe (PUBG)", Colors.GRAY)
     print_color("    • League of Legends.exe (LoL)", Colors.GRAY)
     print_color("    • Overwatch.exe", Colors.GRAY)
-    print_color("[*] Make sure the name matches exactly (case-sensitive on some systems)", Colors.GRAY)
+    print_color(
+        "[*] Make sure the name matches exactly (case-sensitive on some systems)",
+        Colors.GRAY,
+    )
     print()
 
-    exe_name = input(f"{Colors.BOLD}Executable name{Colors.RESET} (or 'back'): ").strip()
-    if not exe_name or exe_name.lower() in ('back', 'b'):
+    exe_name = input(
+        f"{Colors.BOLD}Executable name{Colors.RESET} (or 'back'): "
+    ).strip()
+    if not exe_name or exe_name.lower() in ("back", "b"):
         return
 
     print(f"\n{Colors.BOLD}Summary:{Colors.RESET}")
     print(f"  Executable: {Colors.CYAN}{exe_name}{Colors.RESET}")
-    print(f"  Path: {Colors.GRAY}{faker.chosen_path / config.FAKE_EXE_DIR / exe_name}{Colors.RESET}")
+    print(
+        f"  Path: {Colors.GRAY}{faker.chosen_path / config.FAKE_EXE_DIR / exe_name}{Colors.RESET}"
+    )
 
     if not ask_confirm():
         print_color("\n[!] Operation cancelled", Colors.YELLOW)
@@ -336,6 +541,9 @@ def manual_mode(faker: GameFaker) -> None:
         print()
         faker.launch_executable(result)
         print_color("\n[OK] Setup complete!", Colors.GREEN, bold=True)
-        print_color("[!] IMPORTANT: Discord MUST be running for the spoofing to work", Colors.YELLOW)
+        print_color(
+            "[!] IMPORTANT: Discord MUST be running for the spoofing to work",
+            Colors.YELLOW,
+        )
 
     input(f"\n{Colors.GRAY}Press Enter to continue...{Colors.RESET}")

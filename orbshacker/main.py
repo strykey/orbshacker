@@ -3,24 +3,34 @@ main.py – Application entry point and main loop.
 """
 
 import os
-import sys
 import subprocess
+import sys
 import time
 
 from . import config
-from .ui import Colors, print_color, print_banner, print_menu, show_credits
-from .faker import GameFaker, manual_mode
 from .discord_db import DiscordGamesDB, database_mode
-from .steam import steam_quest_mode
-from .updater import auto_update
 from .errors import DatabaseLoadError
+from .faker import GameFaker, manual_mode
+from .steam import steam_quest_mode
+from .ui import Colors, print_banner, print_color, print_menu, show_credits
+from .updater import auto_update
 
 
 def main() -> None:
     """Main application loop."""
+
+    try:
+        subprocess.run(
+            "cls" if os.name == "nt" else "clear",
+            shell=True,
+            check=False,
+        )
+    except Exception:  # noqa: BLE001, S110
+        pass
+
     try:
         auto_update()
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
 
     print_banner()
@@ -41,33 +51,42 @@ def main() -> None:
         while True:
             try:
                 subprocess.run(
-                    'cls' if os.name == 'nt' else 'clear',
+                    "cls" if os.name == "nt" else "clear",
                     shell=True,
                     check=False,
                 )
                 print_banner()
 
                 if db.source:
-                    print_color(f"   Active Database: {db.source} ({len(db.games)} games)", Colors.GRAY)
+                    print_color(
+                        f"   Active Database: {db.source} ({len(db.games)} games)",
+                        Colors.GRAY,
+                    )
 
                 print_menu()
-                choice = input(f"{Colors.BOLD}Select option{Colors.RESET} [1-5]: ").strip()
+                choice = input(
+                    f"{Colors.BOLD}Select option{Colors.RESET} [1-5]: "
+                ).strip()
 
-                if choice == '1':
+                if choice == "1":
                     database_mode(db, faker)
-                elif choice == '2':
+                elif choice == "2":
                     manual_mode(faker)
-                elif choice == '3':
+                elif choice == "3":
                     steam_quest_mode(faker)
-                elif choice == '4':
+                elif choice == "4":
                     show_credits()
-                elif choice == '5':
-                    print_color(f"\n[*] Thanks for using orbshacker!", Colors.CYAN, bold=True)
+                elif choice == "5":
+                    print_color(
+                        "\n[*] Thanks for using orbshacker!", Colors.CYAN, bold=True
+                    )
                     print_color(f"[*] Developed by {config.DEVELOPER}", Colors.GRAY)
                     print_color("\n[*] May your orbs be plentiful!", Colors.MAGENTA)
                     break
                 else:
-                    print_color("\n[ERROR] Invalid option - try 1, 2, 3, 4 or 5", Colors.RED)
+                    print_color(
+                        "\n[ERROR] Invalid option - try 1, 2, 3, 4 or 5", Colors.RED
+                    )
                     time.sleep(config.SLEEP_SHORT)
 
             except KeyboardInterrupt:
