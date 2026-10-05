@@ -139,4 +139,8 @@ Win64/
 *.exe
 !exe.exe
 .backups/
+intake-report.json
+quests.json
+raw-response.json
+.quest-runs/
 settings.py
