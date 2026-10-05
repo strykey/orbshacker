@@ -204,3 +204,8 @@ made with questionable life choices by **Strykey**
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:4ade80,40:0d1f0d,100:0a0a0a&height=120&section=footer" width="100%"/>
 
 </div>
+
+## Additional quest tooling
+
+- [Quest workflow and CLI usage](docs/QUEST_WORKFLOW.md)
+- [Quest JSON interface](QUEST_INTERFACE.md)

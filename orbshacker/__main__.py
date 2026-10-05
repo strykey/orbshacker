@@ -6,5 +6,5 @@ if "--timer-mode" in sys.argv:
     from .timer import run_timer
     run_timer()
 else:
-    from .main import main
-    main()
+    from .cli import main
+    raise SystemExit(main())

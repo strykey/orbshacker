@@ -65,12 +65,13 @@ if __name__ == "__main__":
             minutes = config.TIMER_MINUTES
         run_timer(minutes)
     else:
-        show_console()
-        from orbshacker.main import main
+        if not sys.argv[1:] or sys.argv[1:] == ["menu"]:
+            show_console()
+        from orbshacker.cli import main
         from orbshacker.ui import print_color, Colors
 
         try:
-            main()
+            sys.exit(main())
         except KeyboardInterrupt:
             print_color("\n\n[!] Interrupted", Colors.YELLOW)
             sys.exit(0)
